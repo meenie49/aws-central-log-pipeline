@@ -52,3 +52,34 @@
 | Monitoring | Amazon CloudWatch |
 | Network | AWS VPC, ALB |
 | Security | AWS IAM, CloudTrail |
+
+---
+
+## 🔄 로그 파이프라인 흐름
+
+```
+[ALB] ──────────────── S3 Event Trigger ──┐
+[EKS] ──┐                                 │
+[VPC] ──┼── CW Subscription Filter ───────┼── Lambda (필터링/파싱)
+[CT] ───┘                                 │
+                                          ▼
+                              Kinesis Data Firehose
+                             ┌──────────┴──────────┐
+                             ▼                     ▼
+                        S3 Bucket           OpenSearch
+                      (장기 보관)           (실시간 분석)
+                      GZIP 압축            Dashboard 시각화
+```
+
+---
+
+## 🔧 주요 트러블슈팅
+
+| 문제 | 원인 | 해결 |
+|---|---|---|
+| Lambda 권한 적용 안됨 | IAM 정책 ≠ 리소스 기반 정책 | Lambda 구성 탭 → 리소스 기반 정책 추가 |
+| Firehose bulk write 실패 | OpenSearch 내부 Role 미설정 | Backend Role에 Firehose ARN 매핑 |
+| @timestamp 숫자 저장 | 타입 매핑 미설정 | Index Template date 타입 고정 |
+| VPC Flow 이벤트 구조 오류 | event['records'] 구조 차이 | Firehose 경유 구조로 변경 |
+
+---
